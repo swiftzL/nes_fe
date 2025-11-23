@@ -1,0 +1,86 @@
+import { createError } from 'h3'
+import type {
+  ApiResponse,
+  Game,
+  GamesPage,
+  FavoritePayload,
+  HistoryPayload,
+  SavePayload,
+  GameSave,
+  GameHistoryEntry
+} from '~/types/api'
+
+const unwrap = async <T>(promise: Promise<ApiResponse<T>>): Promise<T> => {
+  const response = await promise
+  if (response.code !== 0) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: response.msg || '请求失败'
+    })
+  }
+  return response.data
+}
+
+export const useRetroApi = () => {
+  const config = useRuntimeConfig()
+  const baseURL = config.public.apiBase
+  const authToken = config.public.authToken
+
+  const withAuth = () => {
+    const headers: Record<string, string> = {}
+    if (authToken) {
+      headers.Authorization = authToken
+    }
+    return headers
+  }
+
+  return {
+    fetchTypes: () => unwrap<string[]>($fetch('/api/games/types', { baseURL })),
+    fetchRecommend: (limit = 12) =>
+      unwrap<Game[]>($fetch('/api/games/recommend', { baseURL, params: { limit } })),
+    fetchRanking: (limit = 10) =>
+      unwrap<Game[]>($fetch('/api/games/ranking', { baseURL, params: { limit } })),
+    fetchGameById: (id: number) =>
+      unwrap<Game>($fetch(`/api/games/${id}`, { baseURL })),
+    fetchGamesByType: (params: { type: string; page?: number; page_size?: number; language?: string }) =>
+      unwrap<GamesPage>($fetch('/api/games/type', { baseURL, params })),
+    searchByTitle: (title: string) =>
+      unwrap<Game[]>($fetch('/api/games/search', { baseURL, params: { title } })),
+    fetchFavorites: () =>
+      unwrap<Game[]>($fetch('/api/user/favorites', { baseURL, headers: withAuth() })),
+    addFavorite: (payload: FavoritePayload) =>
+      unwrap<void>(
+        $fetch('/api/user/favorites', { baseURL, method: 'POST', body: payload, headers: withAuth() })
+      ),
+    removeFavorite: (gameId: number) =>
+      unwrap<void>(
+        $fetch(`/api/user/favorites/${gameId}`, { baseURL, method: 'DELETE', headers: withAuth() })
+      ),
+    checkFavorite: (gameId: number) =>
+      unwrap<{ is_favorite: boolean }>(
+        $fetch(`/api/user/favorites/${gameId}/check`, { baseURL, headers: withAuth() })
+      ),
+    fetchHistory: (limit = 50) =>
+      unwrap<GameHistoryEntry[]>(
+        $fetch('/api/user/history', { baseURL, params: { limit }, headers: withAuth() })
+      ),
+    addHistory: (payload: HistoryPayload) =>
+      unwrap<void>(
+        $fetch('/api/user/history', { baseURL, method: 'POST', body: payload, headers: withAuth() })
+      ),
+    uploadSave: (payload: SavePayload) =>
+      unwrap<{ save_url: string }>(
+        $fetch('/api/user/saves', {
+          baseURL,
+          method: 'POST',
+          body: payload,
+          headers: withAuth()
+        })
+      ),
+    fetchSave: (gameId: number) =>
+      unwrap<GameSave>($fetch(`/api/user/saves/${gameId}`, { baseURL, headers: withAuth() })),
+    fetchAllSaves: () => unwrap<GameSave[]>($fetch('/api/user/saves', { baseURL, headers: withAuth() })),
+    deleteSave: (gameId: number) =>
+      unwrap<void>($fetch(`/api/user/saves/${gameId}`, { baseURL, method: 'DELETE', headers: withAuth() }))
+  }
+}

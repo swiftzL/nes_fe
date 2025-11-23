@@ -1,0 +1,15 @@
+{
+  "name": "nes_fe",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "start": "nuxt start"
+  },
+  "dependencies": {
+    "nuxt": "^3.11.2"
+  }
+}
