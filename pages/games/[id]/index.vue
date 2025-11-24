@@ -2,7 +2,8 @@
 const route = useRoute()
 const retroApi = useRetroApi()
 const runtime = useRuntimeConfig()
-const hasAuth = computed(() => Boolean(runtime.public.authToken))
+const { buildImageUrl } = useImageBase()
+const hasAuth = computed(() => Boolean(runtime.public.hasAuth))
 
 const gameId = computed(() => Number(route.params.id))
 
@@ -10,6 +11,10 @@ const { data: game, pending, error } = await useAsyncData(
   () => `game-${gameId.value}`,
   () => retroApi.fetchGameById(gameId.value),
   { watch: [gameId] }
+)
+
+const coverImageSrc = computed(() =>
+  buildImageUrl(game.value?.title_screen_image1 || game.value?.title_screen_image || '')
 )
 
 const favoriteState = reactive({ isFavorite: false, loading: false, message: '' })
@@ -174,7 +179,8 @@ const deleteSave = async () => {
       <div v-else-if="game" class="detail-layout">
         <div class="detail-card">
           <div class="game-card__art" style="margin-bottom:1rem;">
-            <img :src="game.title_screen_image || game.title_screen_image1" :alt="game.title" />
+            <img v-if="coverImageSrc" :src="coverImageSrc" :alt="game.title" />
+            <div v-else class="notice-box">暂无封面</div>
           </div>
           <h2>{{ game.title }}</h2>
           <p class="game-card__meta">
@@ -183,7 +189,9 @@ const deleteSave = async () => {
             <span v-if="game.region">· {{ game.region }}</span>
           </p>
           <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:1.5rem;">
-            <button class="retro-button" type="button">立即启动</button>
+            <NuxtLink class="retro-button" :to="`/games/${game.game_id}/touch`">
+              立即启动
+            </NuxtLink>
             <button class="retro-button" type="button" @click="toggleFavorite" :disabled="favoriteState.loading">
               {{ favoriteState.isFavorite ? '取消收藏' : '加入收藏' }}
             </button>
@@ -196,22 +204,24 @@ const deleteSave = async () => {
         <div class="detail-card">
           <h2>元数据</h2>
           <table class="meta-table">
-            <tr>
-              <td>游戏ID</td>
-              <td>{{ game.game_id }}</td>
-            </tr>
-            <tr>
-              <td>ROM 文件</td>
-              <td>{{ game.binary_file }}</td>
-            </tr>
-            <tr>
-              <td>UID</td>
-              <td>{{ game.game_uid || 'N/A' }}</td>
-            </tr>
-            <tr>
-              <td>点击量</td>
-              <td>{{ game.click_count || '无数据' }}</td>
-            </tr>
+            <tbody>
+              <tr>
+                <td>游戏ID</td>
+                <td>{{ game.game_id }}</td>
+              </tr>
+              <tr>
+                <td>ROM 文件</td>
+                <td>{{ game.binary_file }}</td>
+              </tr>
+              <tr>
+                <td>UID</td>
+                <td>{{ game.game_uid || 'N/A' }}</td>
+              </tr>
+              <tr>
+                <td>点击量</td>
+                <td>{{ game.click_count || '无数据' }}</td>
+              </tr>
+            </tbody>
           </table>
           <div style="margin-top:1.5rem;">
             <NuxtLink :to="`/types/${game.type}`" class="badge">更多 {{ game.type }} 游戏</NuxtLink>

@@ -23,54 +23,54 @@ const unwrap = async <T>(promise: Promise<ApiResponse<T>>): Promise<T> => {
 
 export const useRetroApi = () => {
   const config = useRuntimeConfig()
-  const baseURL = config.public.apiBase
-  const authToken = config.public.authToken
+  const baseURL = config.public.apiBase || '/api'
+  const authToken = config.apiToken
 
   const withAuth = () => {
     const headers: Record<string, string> = {}
-    if (authToken) {
+    if (process.server && authToken) {
       headers.Authorization = authToken
     }
     return headers
   }
 
   return {
-    fetchTypes: () => unwrap<string[]>($fetch('/api/games/types', { baseURL })),
+    fetchTypes: () => unwrap<string[]>($fetch('/games/types', { baseURL })),
     fetchRecommend: (limit = 12) =>
-      unwrap<Game[]>($fetch('/api/games/recommend', { baseURL, params: { limit } })),
+      unwrap<Game[]>($fetch('/games/recommend', { baseURL, params: { limit } })),
     fetchRanking: (limit = 10) =>
-      unwrap<Game[]>($fetch('/api/games/ranking', { baseURL, params: { limit } })),
+      unwrap<Game[]>($fetch('/games/ranking', { baseURL, params: { limit } })),
     fetchGameById: (id: number) =>
-      unwrap<Game>($fetch(`/api/games/${id}`, { baseURL })),
+      unwrap<Game>($fetch(`/games/${id}`, { baseURL })),
     fetchGamesByType: (params: { type: string; page?: number; page_size?: number; language?: string }) =>
-      unwrap<GamesPage>($fetch('/api/games/type', { baseURL, params })),
+      unwrap<GamesPage>($fetch('/games/type', { baseURL, params })),
     searchByTitle: (title: string) =>
-      unwrap<Game[]>($fetch('/api/games/search', { baseURL, params: { title } })),
+      unwrap<Game[]>($fetch('/games/search', { baseURL, params: { title } })),
     fetchFavorites: () =>
-      unwrap<Game[]>($fetch('/api/user/favorites', { baseURL, headers: withAuth() })),
+      unwrap<Game[]>($fetch('/user/favorites', { baseURL, headers: withAuth() })),
     addFavorite: (payload: FavoritePayload) =>
       unwrap<void>(
-        $fetch('/api/user/favorites', { baseURL, method: 'POST', body: payload, headers: withAuth() })
+        $fetch('/user/favorites', { baseURL, method: 'POST', body: payload, headers: withAuth() })
       ),
     removeFavorite: (gameId: number) =>
       unwrap<void>(
-        $fetch(`/api/user/favorites/${gameId}`, { baseURL, method: 'DELETE', headers: withAuth() })
+        $fetch(`/user/favorites/${gameId}`, { baseURL, method: 'DELETE', headers: withAuth() })
       ),
     checkFavorite: (gameId: number) =>
       unwrap<{ is_favorite: boolean }>(
-        $fetch(`/api/user/favorites/${gameId}/check`, { baseURL, headers: withAuth() })
+        $fetch(`/user/favorites/${gameId}/check`, { baseURL, headers: withAuth() })
       ),
     fetchHistory: (limit = 50) =>
       unwrap<GameHistoryEntry[]>(
-        $fetch('/api/user/history', { baseURL, params: { limit }, headers: withAuth() })
+        $fetch('/user/history', { baseURL, params: { limit }, headers: withAuth() })
       ),
     addHistory: (payload: HistoryPayload) =>
       unwrap<void>(
-        $fetch('/api/user/history', { baseURL, method: 'POST', body: payload, headers: withAuth() })
+        $fetch('/user/history', { baseURL, method: 'POST', body: payload, headers: withAuth() })
       ),
     uploadSave: (payload: SavePayload) =>
       unwrap<{ save_url: string }>(
-        $fetch('/api/user/saves', {
+        $fetch('/user/saves', {
           baseURL,
           method: 'POST',
           body: payload,
@@ -78,9 +78,9 @@ export const useRetroApi = () => {
         })
       ),
     fetchSave: (gameId: number) =>
-      unwrap<GameSave>($fetch(`/api/user/saves/${gameId}`, { baseURL, headers: withAuth() })),
-    fetchAllSaves: () => unwrap<GameSave[]>($fetch('/api/user/saves', { baseURL, headers: withAuth() })),
+      unwrap<GameSave>($fetch(`/user/saves/${gameId}`, { baseURL, headers: withAuth() })),
+    fetchAllSaves: () => unwrap<GameSave[]>($fetch('/user/saves', { baseURL, headers: withAuth() })),
     deleteSave: (gameId: number) =>
-      unwrap<void>($fetch(`/api/user/saves/${gameId}`, { baseURL, method: 'DELETE', headers: withAuth() }))
+      unwrap<void>($fetch(`/user/saves/${gameId}`, { baseURL, method: 'DELETE', headers: withAuth() }))
   }
 }

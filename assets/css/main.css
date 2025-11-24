@@ -392,6 +392,128 @@ a {
   background: rgba(255, 70, 85, 0.1);
 }
 
+.touch-play {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.touch-play__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background: #13182b;
+  border: 2px solid var(--nes-border);
+  border-radius: 16px;
+  padding: 1rem 1.5rem;
+}
+
+.back-link {
+  color: var(--nes-gold);
+  font-weight: 600;
+  border-bottom: 2px dashed transparent;
+}
+
+.back-link:hover {
+  border-color: var(--nes-gold);
+}
+
+.touch-play__meta {
+  flex: 1;
+  min-width: 180px;
+}
+
+.touch-play__tag {
+  display: inline-flex;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--nes-border);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.7rem;
+  color: var(--nes-green);
+}
+
+.touch-play__meta h1 {
+  margin: 0.4rem 0 0.2rem;
+  font-size: 1.4rem;
+  font-family: var(--font-display);
+}
+
+.touch-play__desc {
+  margin: 0;
+  color: #a0a6c5;
+  font-size: 0.9rem;
+}
+
+.touch-play {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.touch-play__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.controls-header h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--nes-blue);
+}
+
+.controls-header p {
+  margin: 0.4rem 0 0;
+  color: #a9b1d4;
+  font-size: 0.9rem;
+}
+
+.touch-play__emulator {
+  min-height: 400px;
+}
+
+.emulator-shell {
+  display: flex;
+  flex-direction: column;
+  background: #0f1425;
+  border: 2px solid var(--nes-border);
+  border-radius: 18px;
+  padding: 1.5rem;
+  min-height: calc(100vh - 260px);
+}
+
+.emulator-shell__header {
+  border-bottom: 1px solid var(--nes-border);
+  margin-bottom: 1rem;
+  padding-bottom: 0.8rem;
+}
+
+.emulator-shell__header h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--nes-blue);
+}
+
+.emulator-shell__header p {
+  margin: 0.4rem 0 0;
+  color: #9ea5c7;
+  font-size: 0.9rem;
+}
+
+.emulator-stage {
+  flex: 1;
+  border: 3px solid #fff;
+  border-radius: 18px;
+  background: #000;
+  min-height: 420px;
+  height: 100%;
+  overflow: hidden;
+}
+
 @media (max-width: 768px) {
   .retro-header {
     flex-wrap: wrap;
@@ -403,5 +525,13 @@ a {
 
   .ranking-item {
     grid-template-columns: 40px 1fr;
+  }
+
+  .emulator-shell {
+    min-height: calc(100vh - 240px);
+  }
+
+  .emulator-stage {
+    min-height: calc(100vh - 320px);
   }
 }

@@ -3,8 +3,11 @@ import { computed } from 'vue'
 import type { Game } from '~/types/api'
 
 const props = defineProps<{ game: Game; compact?: boolean; showClicks?: boolean }>()
+const { buildImageUrl } = useImageBase()
 
-const coverImage = computed(() => props.game.title_screen_image || props.game.title_screen_image1 || '')
+const coverImage = computed(() =>
+  buildImageUrl(props.game.title_screen_image1 || props.game.title_screen_image || '')
+)
 </script>
 
 <template>

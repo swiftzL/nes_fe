@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const retroApi = useRetroApi()
 const runtime = useRuntimeConfig()
-const hasAuth = computed(() => Boolean(runtime.public.authToken))
+const hasAuth = computed(() => Boolean(runtime.public.hasAuth))
 
 const {
   data: saves,
@@ -10,7 +10,6 @@ const {
   refresh
 } = await useAsyncData('user-saves', () => retroApi.fetchAllSaves(), {
   immediate: hasAuth.value,
-  server: false,
   default: () => []
 })
 

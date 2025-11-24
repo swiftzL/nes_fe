@@ -16,6 +16,9 @@
 - Indent with two spaces, keep strings ASCII, and avoid unnecessary comments; add short context notes only for non-obvious logic.
 - Component filenames use `PascalCase.vue`; composables use `useThing.ts`; CSS variables live in `assets/css/main.css`.
 
+## Communication
+- 默认使用中文进行沟通和文档说明，确保对接方阅读无障碍。
+
 ## Testing Guidelines
 - No automated suite exists yet; manually verify pages by hitting the documented API endpoints via the running dev server.
 - When adding tests (e.g., Vitest), place them under a `tests/` directory mirroring `pages/`/`components/` paths and name files `*.spec.ts`.

@@ -1,3 +1,9 @@
+const rawApiBase = process.env.NES_API_BASE || 'http://localhost:8080'
+const normalizedApiBase = rawApiBase.replace(/\/+$/, '')
+const proxyTarget = normalizedApiBase.endsWith('/api')
+  ? `${normalizedApiBase}/**`
+  : `${normalizedApiBase}/api/**`
+
 export default defineNuxtConfig({
   ssr: true,
   devtools: { enabled: false },
@@ -16,15 +22,25 @@ export default defineNuxtConfig({
   },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
+    apiBase: normalizedApiBase || 'http://localhost:8080',
+    apiToken: process.env.NES_API_TOKEN || '',
     public: {
-      apiBase: process.env.NES_API_BASE || 'http://localhost:8080',
-      authToken: process.env.NES_API_TOKEN || ''
+      apiBase: '/api',
+      hasAuth: Boolean(process.env.NES_API_TOKEN),
+      imageBase: process.env.NES_IMAGE_BASE || 'https://bin9.vae88.com/files/img/',
+      romBase: process.env.NES_ROM_BASE || 'https://bin9.vae88.com/files/',
+      emulatorBase: process.env.NES_EMULATOR_BASE || 'https://cdn.jsdelivr.net/npm/@ttgame/emulatorjs@4.2.3/data'
     }
   },
   components: [{ path: '~/components', extensions: ['vue'] }],
   nitro: {
     routeRules: {
-      '/api/**': { proxy: { to: 'http://localhost:8080/api/**' } }
+      '/api/**': {
+        proxy: {
+          to: proxyTarget,
+          headers: process.env.NES_API_TOKEN ? { Authorization: process.env.NES_API_TOKEN } : undefined
+        }
+      }
     }
   },
   future: {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const retroApi = useRetroApi()
 const runtime = useRuntimeConfig()
-const hasAuth = computed(() => Boolean(runtime.public.authToken))
+const hasAuth = computed(() => Boolean(runtime.public.hasAuth))
 
 const {
   data: history,
@@ -10,7 +10,6 @@ const {
   refresh
 } = await useAsyncData('history-client', () => retroApi.fetchHistory(), {
   immediate: hasAuth.value,
-  server: false,
   default: () => []
 })
 </script>
