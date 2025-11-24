@@ -12,9 +12,12 @@
         <NuxtLink to="/history" active-class="is-active">历史</NuxtLink>
         <NuxtLink to="/saves" active-class="is-active">存档</NuxtLink>
       </nav>
-      <div class="status-indicator">
-        <span class="led"></span>
-        ONLINE
+      <div class="header-actions">
+        <div class="status-indicator">
+          <span class="led"></span>
+          ONLINE
+        </div>
+        <NuxtLink class="retro-button retro-button--ghost" :to="signInLink">登录</NuxtLink>
       </div>
     </header>
 
@@ -31,3 +34,11 @@
     </footer>
   </div>
 </template>
+
+<script setup lang="ts">
+const route = useRoute()
+const signInLink = computed(() => ({
+  path: '/sign-in',
+  query: { redirectTo: route.fullPath || '/' }
+}))
+</script>

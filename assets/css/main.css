@@ -99,6 +99,22 @@ a {
   box-shadow: 0 0 10px var(--nes-green);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.retro-button--ghost {
+  background: transparent;
+  color: var(--nes-soft);
+  border-color: var(--nes-border);
+}
+
+.retro-button--ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .retro-main {
   flex: 1;
   padding: 3rem 4vw 4rem;

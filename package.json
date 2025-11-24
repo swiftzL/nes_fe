@@ -10,6 +10,7 @@
     "start": "nuxt start"
   },
   "dependencies": {
+    "@clerk/nuxt": "^1.13.2",
     "jszip": "^3.10.1",
     "nuxt": "^3.11.2"
   }

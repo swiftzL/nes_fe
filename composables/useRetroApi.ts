@@ -10,21 +10,38 @@ import type {
   GameHistoryEntry
 } from '~/types/api'
 
-const unwrap = async <T>(promise: Promise<ApiResponse<T>>): Promise<T> => {
-  const response = await promise
-  if (response.code !== 0) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: response.msg || '请求失败'
-    })
-  }
-  return response.data
-}
-
 export const useRetroApi = () => {
   const config = useRuntimeConfig()
   const baseURL = config.public.apiBase || '/api'
   const authToken = config.apiToken
+  const route = useRoute()
+  const redirectToSignIn = async () => {
+    if (!process.client) return
+    const redirectTo = route.fullPath || '/'
+    await navigateTo({ path: '/sign-in', query: { redirectTo } })
+  }
+
+  const unwrap = async <T>(promise: Promise<ApiResponse<T>>): Promise<T> => {
+    try {
+      const response = await promise
+      if (response.code === 401) {
+        await redirectToSignIn()
+        throw createError({ statusCode: 401, statusMessage: '未登录' })
+      }
+      if (response.code !== 0) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: response.msg || '请求失败'
+        })
+      }
+      return response.data
+    } catch (err: any) {
+      if (err?.response?.status === 401) {
+        await redirectToSignIn()
+      }
+      throw err
+    }
+  }
 
   const withAuth = () => {
     const headers: Record<string, string> = {}
