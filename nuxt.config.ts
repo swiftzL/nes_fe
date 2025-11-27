@@ -10,7 +10,8 @@ const clerkInstanceType = clerkPublishableKey.startsWith("pk_live_")
   : clerkPublishableKey
   ? "development"
   : "disabled";
-const enableClerk = Boolean(clerkPublishableKey && clerkSecretKey);
+let enableClerk = Boolean(clerkPublishableKey && clerkSecretKey);
+enableClerk = true
 
 export default defineNuxtConfig({
   ssr: true,
@@ -42,10 +43,8 @@ export default defineNuxtConfig({
   css: ["~/assets/css/main.css"],
   runtimeConfig: {
     apiBase: normalizedApiBase || "http://localhost:8080",
-    apiToken: process.env.NES_API_TOKEN || "",
     public: {
       apiBase: "/api",
-      hasAuth: Boolean(process.env.NES_API_TOKEN),
       imageBase:
         process.env.NES_IMAGE_BASE || "https://bin9.vae88.com/files/img/",
       romBase: process.env.NES_ROM_BASE || "https://bin9.vae88.com/files/",
@@ -63,6 +62,7 @@ export default defineNuxtConfig({
           publishableKey: clerkPublishableKey,
           secretKey: clerkSecretKey,
           signInUrl: "/sign-in",
+          signUpUrl: "/sign-up",
         },
       }
     : {}),
@@ -72,9 +72,6 @@ export default defineNuxtConfig({
       "/api/**": {
         proxy: {
           to: proxyTarget,
-          headers: process.env.NES_API_TOKEN
-            ? { Authorization: process.env.NES_API_TOKEN }
-            : undefined,
         },
       },
     },

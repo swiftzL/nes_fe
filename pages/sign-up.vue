@@ -3,14 +3,14 @@
     <div class="auth-card">
       <div class="auth-header">
         <NuxtLink to="/" class="back-home">← 返回首页</NuxtLink>
-        <h1>登录 NES Retro Hub</h1>
-        <p>登录后可使用收藏、历史记录、云存档等功能</p>
+        <h1>注册 NES Retro Hub</h1>
+        <p>创建账号，畅玩复古游戏</p>
       </div>
       <ClientOnly>
         <template v-if="hasClerk">
-          <SignIn
+          <SignUp
             :fallback-redirect-url="redirectTo"
-            :sign-up-url="signUpPath"
+            :sign-in-url="signInPath"
           />
         </template>
         <template v-else>
@@ -39,7 +39,7 @@
 const route = useRoute()
 const runtime = useRuntimeConfig()
 const redirectTo = computed(() => (route.query.redirectTo as string) || '/')
-const signUpPath = computed(() => `/sign-up?redirectTo=${encodeURIComponent(redirectTo.value)}`)
+const signInPath = computed(() => `/sign-in?redirectTo=${encodeURIComponent(redirectTo.value)}`)
 const hasClerk = computed(() => Boolean(runtime.public?.clerkPublishableKey))
 </script>
 

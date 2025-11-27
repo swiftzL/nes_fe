@@ -9,7 +9,6 @@
 - `npm install` — install dependencies (Node 18+ recommended).
 - `npm run dev` — launch Nuxt in SSR dev mode with hot reload at `http://localhost:3000`.
 - `npm run build` — create production bundle (`.output/`).
-- `npm run start` — serve the production build; ensure `.env` exposes `NES_API_BASE`/`NES_API_TOKEN`.
 
 ## Coding Style & Naming Conventions
 - Stick to TypeScript + Vue SFCs with `<script setup lang="ts">`; prefer composables and `useAsyncData` for API calls.
@@ -22,7 +21,6 @@
 ## Testing Guidelines
 - No automated suite exists yet; manually verify pages by hitting the documented API endpoints via the running dev server.
 - When adding tests (e.g., Vitest), place them under a `tests/` directory mirroring `pages/`/`components/` paths and name files `*.spec.ts`.
-- Validate that protected flows respond gracefully when `NES_API_TOKEN` is missing.
 
 ## Commit & Pull Request Guidelines
 - Favor concise commits like `feat: add cloud save dashboard` or `fix: handle favorite status update`; scope each commit to a coherent change.
@@ -30,5 +28,4 @@
 - Reference related issues (`Fixes #123`) and call out any backend/API assumptions or required migrations.
 
 ## Security & Configuration Tips
-- Never hard-code API tokens; use `.env` (already gitignored) for `NES_API_BASE` and `NES_API_TOKEN`.
 - Treat upload forms carefully: always validate `game_id` and file type before calling `/api/user/saves`.

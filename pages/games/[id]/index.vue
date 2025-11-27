@@ -1,9 +1,12 @@
 <script setup lang="ts">
 const route = useRoute()
 const retroApi = useRetroApi()
-const runtime = useRuntimeConfig()
 const { buildImageUrl } = useImageBase()
-const hasAuth = computed(() => Boolean(runtime.public.hasAuth))
+const { isAuthenticated, hasClerk, initClerkState } = useAuthState()
+
+onMounted(() => {
+  initClerkState()
+})
 
 const gameId = computed(() => Number(route.params.id))
 
@@ -18,13 +21,7 @@ const coverImageSrc = computed(() =>
 )
 
 const favoriteState = reactive({ isFavorite: false, loading: false, message: '' })
-const historyForm = reactive({ playTime: '30分钟', loading: false, message: '' })
-const saveUpload = reactive<{ file: File | null; loading: boolean; message: string }>({
-  file: null,
-  loading: false,
-  message: ''
-})
-const saveInput = ref<HTMLInputElement | null>(null)
+const saveAction = reactive({ loading: false, message: '' })
 
 const {
   data: saveData,
@@ -39,7 +36,7 @@ const {
 })
 
 const checkFavoriteState = async () => {
-  if (!hasAuth.value || !gameId.value) return
+  if (!isAuthenticated.value || !gameId.value) return
   try {
     const status = await retroApi.checkFavorite(gameId.value)
     favoriteState.isFavorite = status.is_favorite
@@ -48,12 +45,11 @@ const checkFavoriteState = async () => {
   }
 }
 
-watch(hasAuth, () => {
+watch(isAuthenticated, () => {
   favoriteState.message = ''
-  historyForm.message = ''
-  saveUpload.message = ''
+  saveAction.message = ''
   checkFavoriteState()
-  if (hasAuth.value) {
+  if (isAuthenticated.value) {
     fetchGameSave()
   } else {
     saveData.value = null
@@ -61,24 +57,24 @@ watch(hasAuth, () => {
 })
 
 watch(gameId, () => {
-  saveUpload.message = ''
-  if (hasAuth.value) {
+  saveAction.message = ''
+  if (isAuthenticated.value) {
     fetchGameSave()
   } else {
     saveData.value = null
   }
 })
 
-onMounted(() => {
-  checkFavoriteState()
-  if (hasAuth.value) {
+watch(isAuthenticated, (val) => {
+  if (val) {
+    checkFavoriteState()
     fetchGameSave()
   }
-})
+}, { immediate: true })
 
 const toggleFavorite = async () => {
-  if (!hasAuth.value || !game.value) {
-    favoriteState.message = '未配置认证信息，无法调用收藏接口。'
+  if (!isAuthenticated.value || !game.value) {
+    favoriteState.message = '请先登录以使用收藏功能。'
     return
   }
   favoriteState.loading = true
@@ -99,73 +95,21 @@ const toggleFavorite = async () => {
   }
 }
 
-const submitHistory = async () => {
-  if (!hasAuth.value || !game.value) {
-    historyForm.message = '未配置认证信息，无法记录历史。'
-    return
-  }
-  if (!historyForm.playTime.trim()) {
-    historyForm.message = '请输入游玩时长，例如 30分钟。'
-    return
-  }
-  historyForm.loading = true
-  try {
-    await retroApi.addHistory({ game_id: game.value.game_id, play_time: historyForm.playTime })
-    historyForm.message = '已记录游玩历史'
-  } catch (err: any) {
-    historyForm.message = err?.statusMessage || '记录失败'
-  } finally {
-    historyForm.loading = false
-  }
-}
-
-const onSaveFileChange = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  saveUpload.file = target.files?.[0] || null
-}
-
-const submitSave = async () => {
-  if (!hasAuth.value || !game.value) {
-    saveUpload.message = '请先配置 NES_API_TOKEN 才能上传存档。'
-    return
-  }
-  if (!saveUpload.file) {
-    saveUpload.message = '请选择要上传的 .bin 存档文件。'
-    return
-  }
-  const formData = new FormData()
-  formData.append('game_id', String(game.value.game_id))
-  formData.append('save_file', saveUpload.file)
-  saveUpload.loading = true
-  try {
-    await retroApi.uploadSave(formData)
-    saveUpload.message = '存档上传成功'
-    if (saveInput.value) {
-      saveInput.value.value = ''
-    }
-    saveUpload.file = null
-    await fetchGameSave()
-  } catch (err: any) {
-    saveUpload.message = err?.statusMessage || '上传失败'
-  } finally {
-    saveUpload.loading = false
-  }
-}
-
 const deleteSave = async () => {
-  if (!hasAuth.value || !game.value) {
-    saveUpload.message = '缺少认证信息，无法删除存档。'
+  if (!isAuthenticated.value || !game.value) {
+    saveAction.message = '请先登录以删除存档。'
     return
   }
-  saveUpload.loading = true
+  saveAction.loading = true
+  saveAction.message = ''
   try {
     await retroApi.deleteSave(game.value.game_id)
-    saveUpload.message = '已删除存档'
+    saveAction.message = '已删除存档'
     await fetchGameSave()
   } catch (err: any) {
-    saveUpload.message = err?.statusMessage || '删除失败'
+    saveAction.message = err?.statusMessage || '删除失败'
   } finally {
-    saveUpload.loading = false
+    saveAction.loading = false
   }
 }
 </script>
@@ -197,9 +141,19 @@ const deleteSave = async () => {
             </button>
           </div>
           <p v-if="favoriteState.message" class="badge" style="margin-top:1rem;">{{ favoriteState.message }}</p>
-          <div v-if="!hasAuth" class="notice-box" style="margin-top:1rem;">
-            收藏、历史、存档等操作需要在运行环境中设置 NES_API_TOKEN。
-          </div>
+          <ClientOnly>
+            <div v-if="!isAuthenticated" class="notice-box" style="margin-top:1rem;">
+              <template v-if="hasClerk">
+                <SignInButton mode="modal" v-slot="slotProps">
+                  <span class="auth-link" @click="slotProps?.open?.()">登录</span>
+                </SignInButton>
+                后可使用收藏、历史、存档等功能。
+              </template>
+              <template v-else>
+                请配置 Clerk 密钥以启用登录功能。
+              </template>
+            </div>
+          </ClientOnly>
         </div>
         <div class="detail-card">
           <h2>元数据</h2>
@@ -228,27 +182,21 @@ const deleteSave = async () => {
           </div>
         </div>
         <div class="detail-card">
-          <h2>游玩记录 & 存档</h2>
+          <h2>存档管理</h2>
           <section class="detail-section">
-            <h3>添加游玩历史</h3>
-            <p>向服务器提交游玩时长，便于在“游玩历史”页面回顾。</p>
-            <input
-              v-model="historyForm.playTime"
-              type="text"
-              placeholder="例如：30分钟"
-              style="width:100%; margin:0.5rem 0; padding:0.6rem; border:2px solid var(--nes-border); border-radius:8px; background:#0b101c; color:var(--nes-soft);"
-            />
-            <button class="retro-button" type="button" @click="submitHistory" :disabled="historyForm.loading">
-              {{ historyForm.loading ? '提交中...' : '记录游玩' }}
-            </button>
-            <p v-if="historyForm.message" class="badge" style="margin-top:0.8rem;">{{ historyForm.message }}</p>
-          </section>
-          <section class="detail-section">
-            <h3>存档管理</h3>
-            <div v-if="!hasAuth" class="notice-box">
-              上传、读取、删除存档需要认证信息。请配置 NES_API_TOKEN。
-            </div>
-            <div v-else>
+            <ClientOnly>
+              <div v-if="!isAuthenticated" class="notice-box">
+                <template v-if="hasClerk">
+                  <SignInButton mode="modal" v-slot="slotProps">
+                    <span class="auth-link" @click="slotProps?.open?.()">登录</span>
+                  </SignInButton>
+                  后可管理存档。
+                </template>
+                <template v-else>
+                  请配置 Clerk 密钥以启用存档功能。
+                </template>
+              </div>
+              <div v-else>
               <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center; margin-bottom:1rem;">
                 <button class="retro-button" type="button" @click="fetchGameSave" :disabled="savePending">
                   {{ savePending ? '同步中...' : '刷新存档' }}
@@ -260,28 +208,28 @@ const deleteSave = async () => {
               <div v-else-if="saveData" class="save-box">
                 <p>存档文件：<a :href="saveData.save_file" target="_blank" rel="noopener">下载链接</a></p>
                 <p>更新于：{{ saveData.update_time }}</p>
-                <button class="retro-button" type="button" @click="deleteSave" :disabled="saveUpload.loading">
+                <button class="retro-button" type="button" @click="deleteSave" :disabled="saveAction.loading">
                   删除当前存档
                 </button>
               </div>
-              <div v-else class="notice-box">暂无该游戏存档，尝试上传吧。</div>
-              <form class="upload-form" style="margin-top:1rem; display:flex; flex-direction:column; gap:0.8rem;" @submit.prevent="submitSave">
-                <input
-                  ref="saveInput"
-                  type="file"
-                  accept=".bin,.sav"
-                  @change="onSaveFileChange"
-                  style="border:2px dashed var(--nes-border); padding:0.8rem; border-radius:10px; background:#0b101c; color:var(--nes-soft);"
-                />
-                <button class="retro-button" type="submit" :disabled="saveUpload.loading">
-                  {{ saveUpload.loading ? '上传中...' : '上传存档文件' }}
-                </button>
-              </form>
-              <p v-if="saveUpload.message" class="badge" style="margin-top:0.6rem;">{{ saveUpload.message }}</p>
+              <div v-else class="notice-box">暂无该游戏存档，可在触屏模式保存后同步。</div>
+              <p v-if="saveAction.message" class="badge" style="margin-top:0.6rem;">{{ saveAction.message }}</p>
             </div>
+          </ClientOnly>
           </section>
         </div>
       </div>
     </RetroPanel>
   </div>
 </template>
+
+<style scoped>
+.auth-link {
+  color: var(--nes-accent, #ff4655);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.auth-link:hover {
+  color: var(--nes-gold, #f3d45c);
+}
+</style>

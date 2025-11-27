@@ -38,8 +38,10 @@ export type SavePayload = FormData
 
 export interface GameSave {
   id: number
-  user_id: string
+  user_id?: string
   game_id: number
+  game_title?: string
+  game_image?: string
   save_file: string
   create_time: string
   update_time: string

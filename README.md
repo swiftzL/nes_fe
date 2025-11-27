@@ -31,7 +31,6 @@ npm run start
 
 ```
 NES_API_BASE=http://localhost:8080
-NES_API_TOKEN=Bearer your-token
 NES_ROM_BASE=https://bin9.vae88.com/files/
 NES_EMULATOR_BASE=https://cdn.jsdelivr.net/npm/@ttgame/emulatorjs@4.2.3/data/
 CLERK_PUBLISHABLE_KEY=pk_live_xxx
@@ -39,7 +38,6 @@ CLERK_SECRET_KEY=sk_live_xxx
 ```
 
 - `NES_API_BASE`：后端 API 地址
-- `NES_API_TOKEN`：可选，携带认证信息以调用收藏、历史、存档接口
 - `NES_ROM_BASE`：ROM 文件基础地址，触屏启动页会拼接 `binary_file`
 - `NES_EMULATOR_BASE`：EmulatorJS 静态资源地址，可改为自建 CDN
 - `CLERK_PUBLISHABLE_KEY`：Clerk 登录组件的公钥，用于前端鉴权

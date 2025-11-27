@@ -7,7 +7,7 @@
       </NuxtLink>
       <nav class="retro-nav">
         <NuxtLink to="/" exact-active-class="is-active">主页</NuxtLink>
-        <NuxtLink to="/types/NES" active-class="is-active">平台</NuxtLink>
+        <NuxtLink to="/types/nes" active-class="is-active">平台</NuxtLink>
         <NuxtLink to="/favorites" active-class="is-active">收藏</NuxtLink>
         <NuxtLink to="/history" active-class="is-active">历史</NuxtLink>
         <NuxtLink to="/saves" active-class="is-active">存档</NuxtLink>
@@ -17,7 +17,36 @@
           <span class="led"></span>
           ONLINE
         </div>
-        <NuxtLink class="retro-button retro-button--ghost" :to="signInLink">登录</NuxtLink>
+        <ClientOnly>
+          <template v-if="hasClerk">
+            <SignedIn>
+              <div class="user-menu">
+                <UserButton
+                  :after-sign-out-url="'/'"
+                  :appearance="{
+                    elements: {
+                      avatarBox: 'user-avatar-box'
+                    }
+                  }"
+                />
+              </div>
+            </SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal" v-slot="slotProps">
+                <button
+                  class="retro-button retro-button--ghost"
+                  type="button"
+                  @click="slotProps?.open?.()"
+                >
+                  登录
+                </button>
+              </SignInButton>
+            </SignedOut>
+          </template>
+          <template v-else>
+            <span class="retro-button retro-button--ghost retro-button--disabled">登录</span>
+          </template>
+        </ClientOnly>
       </div>
     </header>
 
@@ -36,9 +65,13 @@
 </template>
 
 <script setup lang="ts">
-const route = useRoute()
-const signInLink = computed(() => ({
-  path: '/sign-in',
-  query: { redirectTo: route.fullPath || '/' }
-}))
+const runtime = useRuntimeConfig()
+const hasClerk = computed(() => Boolean(runtime.public?.clerkPublishableKey))
 </script>
+
+<style scoped>
+.retro-button--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>

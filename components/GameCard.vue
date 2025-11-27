@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { Game } from '~/types/api'
 
-const props = defineProps<{ game: Game; compact?: boolean; showClicks?: boolean }>()
+const props = defineProps<{ game: Game; compact?: boolean; showClicks?: boolean; size?: 'default' | 'small' }>()
 const { buildImageUrl } = useImageBase()
 
 const coverImage = computed(() =>
@@ -11,7 +11,14 @@ const coverImage = computed(() =>
 </script>
 
 <template>
-  <NuxtLink :to="`/games/${game.game_id}`" class="game-card" :class="{ 'game-card--compact': compact }">
+  <NuxtLink
+    :to="`/games/${game.game_id}`"
+    class="game-card"
+    :class="{
+      'game-card--compact': compact,
+      'game-card--small': size === 'small'
+    }"
+  >
     <div class="game-card__art">
       <img v-if="coverImage" :src="coverImage" :alt="game.title" loading="lazy" />
       <div v-else class="placeholder">NO ART</div>

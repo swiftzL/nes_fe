@@ -1,9 +1,23 @@
 <script setup lang="ts">
 import JSZip from "jszip";
+import type { GameSave } from "~/types/api";
 
 const route = useRoute();
 const retroApi = useRetroApi();
 const runtime = useRuntimeConfig();
+
+type EmulatorSaveFns = {
+    getState?: () => Promise<Uint8Array | string | null> | Uint8Array | string | null;
+    loadState?: (payload: Uint8Array | string) => Promise<void> | void;
+};
+
+type EmulatorGameManager = EmulatorSaveFns & {
+    functions?: EmulatorSaveFns;
+};
+
+type EmulatorInstance = {
+    gameManager?: EmulatorGameManager;
+};
 
 type EmulatorWindow = Window &
     Partial<{
@@ -15,11 +29,27 @@ type EmulatorWindow = Window &
         EJS_gameID: string;
         EJS_startOnLoaded: boolean;
         EJS_onGameStart: () => void;
+        EJS_emulator: EmulatorInstance;
     }>;
 
 const fullscreenRoot = ref<HTMLElement | null>(null);
 const emulatorStage = ref<HTMLElement | null>(null);
 const emulatorMessage = ref("");
+const isFullscreen = ref(false);
+const emulatorReady = ref(false);
+
+const { isAuthenticated, hasClerk, initClerkState } = useAuthState();
+const remoteSave = ref<GameSave | null>(null);
+const allSaves = ref<GameSave[]>([]);
+const showSaveSelector = ref(false);
+const hasShownInitialSelector = ref(false);
+const saveSyncing = ref(false);
+const saveUploading = ref(false);
+const loadApplying = ref(false);
+const saveMessage = ref("");
+const loadMessage = ref("");
+const saveFetchMessage = ref("");
+let saveFetchToken = 0;
 
 const gameId = computed(() => {
     const id = Number(route.params.id);
@@ -126,8 +156,12 @@ const prepareRomFile = async () => {
             return;
         }
         cleanupPreparedRom();
+        const romBuffer = romBytes.buffer.slice(
+            romBytes.byteOffset,
+            romBytes.byteOffset + romBytes.byteLength,
+        ) as ArrayBuffer;
         const objectUrl = URL.createObjectURL(
-            new Blob([romBytes], { type: "application/octet-stream" }),
+            new Blob([romBuffer], { type: "application/octet-stream" }),
         );
         romObjectUrl = objectUrl;
         preparedRomUrl.value = objectUrl;
@@ -169,8 +203,17 @@ const attachEmulator = async () => {
         ? `game-${game.value.game_id}`
         : `game-${gameId.value}`;
     win.EJS_startOnLoaded = true;
-    win.EJS_onGameStart = () => {
+    win.EJS_onGameStart = async () => {
         romLoading.value = false;
+        // 等待 gameManager 可用后再标记为就绪
+        const manager = await waitForGameManager(5000);
+        if (manager) {
+            emulatorReady.value = true;
+            console.log("[touch] emulator ready with gameManager");
+        } else {
+            console.warn("[touch] emulator started but gameManager not available");
+            emulatorReady.value = true; // 仍然标记为就绪，但会在使用时重试
+        }
     };
 
     const loadScriptOnce = (id: string, src: string) =>
@@ -225,6 +268,264 @@ if (import.meta.client) {
     );
 }
 
+const handleFullscreenChange = () => {
+    if (!import.meta.client) return;
+    isFullscreen.value = Boolean(document.fullscreenElement);
+};
+
+const getGameManager = (): EmulatorGameManager | null => {
+    if (!import.meta.client) return null;
+    const win = window as EmulatorWindow;
+    return win.EJS_emulator?.gameManager || null;
+};
+
+const waitForGameManager = async (maxWaitMs = 3000): Promise<EmulatorGameManager | null> => {
+    if (!import.meta.client) return null;
+    const startTime = Date.now();
+    while (Date.now() - startTime < maxWaitMs) {
+        const manager = getGameManager();
+        if (manager != null) {
+            return manager;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return null;
+};
+
+
+const base64ToUint8Array = (base64: string) => {
+    const binary = atob(base64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+};
+
+const toUint8Array = (value: unknown): Uint8Array | null => {
+    if (!value) return null;
+    if (value instanceof Uint8Array) return value;
+    if (value instanceof ArrayBuffer) return new Uint8Array(value);
+    if (typeof value === "string") {
+        try {
+            return base64ToUint8Array(value);
+        } catch {
+            return null;
+        }
+    }
+    return null;
+};
+
+const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+    const bytes = new Uint8Array(buffer);
+    const chunk = 0x8000;
+    let binary = "";
+    for (let i = 0; i < bytes.byteLength; i += chunk) {
+        const sub = bytes.subarray(i, i + chunk);
+        binary += String.fromCharCode(...sub);
+    }
+    return btoa(binary);
+};
+
+const fetchRemoteSave = async () => {
+    if (!import.meta.client) return;
+    if (!isAuthenticated.value || !gameId.value) {
+        remoteSave.value = null;
+        allSaves.value = [];
+        return;
+    }
+    const currentToken = ++saveFetchToken;
+    saveSyncing.value = true;
+    saveFetchMessage.value = "";
+    try {
+        // 获取所有存档，然后过滤出当前游戏的存档
+        const allSavesData = await retroApi.fetchAllSaves();
+        if (currentToken === saveFetchToken) {
+            const gameSaves = allSavesData.filter(save => save.game_id === gameId.value);
+            allSaves.value = gameSaves;
+            // 保留最新的存档作为默认
+            remoteSave.value = gameSaves.length > 0 ? (gameSaves[0] || null) : null;
+            // 如果有存档且是首次加载，自动显示选择弹窗
+            if (gameSaves.length > 0 && !hasShownInitialSelector.value) {
+                hasShownInitialSelector.value = true;
+                showSaveSelector.value = true;
+            }
+        }
+    } catch (err: any) {
+        if (currentToken !== saveFetchToken) return;
+        remoteSave.value = null;
+        allSaves.value = [];
+        if (err?.statusCode !== 404) {
+            saveFetchMessage.value =
+                err?.statusMessage || "云存档同步失败，请稍后再试。";
+        }
+    } finally {
+        if (currentToken === saveFetchToken) {
+            saveSyncing.value = false;
+        }
+    }
+};
+
+const handleSaveState = async () => {
+    if (!import.meta.client) return;
+    if (!isAuthenticated.value) {
+        saveMessage.value = "请先登录再保存存档。";
+        return;
+    }
+    if (saveUploading.value) return; // 防止重复点击
+    saveUploading.value = true;
+    saveMessage.value = "正在等待模拟器就绪...";
+    try {
+        const manager = await waitForGameManager(5000);
+        if (!manager?.getState) {
+            saveMessage.value = "当前模拟器未暴露存档接口。";
+            return;
+        }
+        saveMessage.value = "正在保存存档...";
+        const rawState = await manager.getState();
+        if (!rawState) {
+            throw new Error("无法获取存档数据。");
+        }
+        const bytes = toUint8Array(rawState);
+        if (!bytes) {
+            throw new Error("无法解析存档数据。");
+        }
+        const fileName = `${game.value?.title || "save"}-${gameId.value}.bin`;
+        const bytesBuffer = bytes.buffer.slice(
+            bytes.byteOffset,
+            bytes.byteOffset + bytes.byteLength,
+        ) as ArrayBuffer;
+        const formData = new FormData();
+        formData.append("game_id", String(gameId.value));
+        formData.append(
+            "save_file",
+            new File([bytesBuffer], fileName, { type: "application/octet-stream" }),
+        );
+        await retroApi.uploadSave(formData);
+        saveMessage.value = "已上传云存档。";
+        await fetchRemoteSave();
+    } catch (err: any) {
+        console.error("[touch] save state failed", err);
+        saveMessage.value = err?.message || "保存存档失败。";
+    } finally {
+        saveUploading.value = false;
+    }
+};
+
+const handleLoadState = async () => {
+    if (!import.meta.client) return;
+    if (!isAuthenticated.value) {
+        loadMessage.value = "请先登录再加载存档。";
+        return;
+    }
+    if (allSaves.value.length === 0) {
+        loadMessage.value = "暂无云存档可加载。";
+        return;
+    }
+    // 如果有多个存档，显示选择弹窗
+    if (allSaves.value.length > 1) {
+        showSaveSelector.value = true;
+        return;
+    }
+    // 只有一个存档，直接加载
+    const firstSave = allSaves.value[0];
+    if (firstSave) {
+        await loadSelectedSave(firstSave);
+    } else {
+        loadMessage.value = "暂无存档可加载。";
+    }
+};
+
+const loadSelectedSave = async (save: GameSave) => {
+    if (!import.meta.client) return;
+    showSaveSelector.value = false;
+    if (loadApplying.value) return;
+    loadApplying.value = true;
+    loadMessage.value = "正在等待模拟器就绪...";
+    try {
+        const manager = await waitForGameManager(5000);
+        if (!manager?.loadState) {
+            loadMessage.value = "当前模拟器未暴露加载接口。";
+            return;
+        }
+        loadMessage.value = "正在加载存档...";
+        const response = await fetch(save.save_file);
+        if (!response.ok) {
+            throw new Error("下载云存档失败。");
+        }
+        const buffer = await response.arrayBuffer();
+        const stateBytes = new Uint8Array(buffer);
+        try {
+            await manager.loadState(stateBytes);
+        } catch (err) {
+            console.warn("[touch] loadState with bytes failed, fallback to base64", err);
+            const base64State = arrayBufferToBase64(buffer);
+            await manager.loadState(base64State);
+        }
+        loadMessage.value = "已加载云存档。";
+    } catch (err: any) {
+        console.error("[touch] load state failed", err);
+        loadMessage.value = err?.message || "加载存档失败。";
+    } finally {
+        loadApplying.value = false;
+    }
+};
+
+const requestFullscreen = async () => {
+    if (!import.meta.client) return;
+    const target =
+        emulatorStage.value || fullscreenRoot.value || document.documentElement;
+    const el: any = target;
+    if (!el) return;
+    const request =
+        el.requestFullscreen ||
+        el.webkitRequestFullscreen ||
+        el.msRequestFullscreen ||
+        el.mozRequestFullScreen;
+    if (request) {
+        await request.call(el);
+    }
+};
+
+const exitFullscreen = async () => {
+    if (!import.meta.client) return;
+    if (document.fullscreenElement) {
+        await document.exitFullscreen();
+    }
+};
+
+const toggleFullscreen = async () => {
+    if (isFullscreen.value) {
+        await exitFullscreen();
+    } else {
+        await requestFullscreen();
+    }
+};
+
+const fullscreenLabel = computed(() =>
+    isFullscreen.value ? "退出全屏" : "全屏模式",
+);
+
+watch(
+    () => [isAuthenticated.value, gameId.value],
+    () => {
+        if (!import.meta.client) return;
+        saveMessage.value = "";
+        loadMessage.value = "";
+        // 切换游戏时重置初始选择器标志
+        hasShownInitialSelector.value = false;
+        fetchRemoteSave();
+    },
+    { immediate: true },
+);
+
+onMounted(() => {
+    if (!import.meta.client) return;
+    initClerkState();
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+});
+
 onBeforeUnmount(() => {
     if (!import.meta.client) return;
     cleanupPreparedRom();
@@ -232,6 +533,7 @@ onBeforeUnmount(() => {
     loaderScript?.parentElement?.removeChild(loaderScript);
     const mainScript = document.getElementById("touch-emulator-main");
     mainScript?.parentElement?.removeChild(mainScript);
+    document.removeEventListener("fullscreenchange", handleFullscreenChange);
 });
 
 </script>
@@ -250,6 +552,70 @@ onBeforeUnmount(() => {
                     {{ game.region || "地区未知" }}
                 </p>
             </div>
+            <div class="touch-play__actions">
+                <ClientOnly>
+                    <template v-if="isAuthenticated">
+                        <button
+                            class="retro-button"
+                            type="button"
+                            @click="handleSaveState"
+                            :disabled="saveUploading || romLoading || !emulatorReady"
+                        >
+                            {{ saveUploading ? "保存中..." : "保存存档" }}
+                        </button>
+                        <button
+                            class="retro-button"
+                            type="button"
+                            @click="handleLoadState"
+                            :disabled="
+                                loadApplying ||
+                                allSaves.length === 0 ||
+                                saveSyncing ||
+                                !emulatorReady
+                            "
+                        >
+                            {{
+                                loadApplying
+                                    ? "加载中..."
+                                    : allSaves.length > 0
+                                      ? "加载存档"
+                                      : "暂无存档"
+                            }}
+                        </button>
+                        <span class="badge" v-if="saveSyncing">
+                            同步云存档...
+                        </span>
+                    </template>
+                    <template v-else>
+                        <span class="badge">
+                            <template v-if="hasClerk">
+                                登录后可保存 / 加载存档
+                            </template>
+                            <template v-else>
+                                配置认证信息后可保存存档
+                            </template>
+                        </span>
+                    </template>
+                </ClientOnly>
+                <button
+                    class="retro-button retro-button--ghost"
+                    type="button"
+                    @click="toggleFullscreen"
+                >
+                    {{ fullscreenLabel }}
+                </button>
+            </div>
+        </div>
+
+        <div
+            class="touch-play__messages"
+            v-if="saveMessage || loadMessage || saveFetchMessage"
+        >
+            <span class="badge" v-if="saveFetchMessage">
+                {{ saveFetchMessage }}
+            </span>
+            <span class="badge" v-if="saveMessage">{{ saveMessage }}</span>
+            <span class="badge" v-if="loadMessage">{{ loadMessage }}</span>
         </div>
 
         <div class="touch-play__body">
@@ -288,5 +654,59 @@ onBeforeUnmount(() => {
                 </div>
             </section>
         </div>
+
+        <!-- 存档选择弹窗 -->
+        <ClientOnly>
+            <div
+                v-if="showSaveSelector"
+                class="save-selector-overlay"
+                @click.self="showSaveSelector = false"
+            >
+                <div class="save-selector-modal">
+                    <div class="save-selector-header">
+                        <h3>选择要加载的存档</h3>
+                        <button
+                            class="save-selector-close"
+                            type="button"
+                            @click="showSaveSelector = false"
+                        >
+                            ×
+                        </button>
+                    </div>
+                    <div class="save-selector-content">
+                        <div
+                            v-if="allSaves.length === 0"
+                            class="notice-box"
+                        >
+                            暂无存档可加载
+                        </div>
+                        <div
+                            v-else
+                            class="save-selector-list"
+                        >
+                            <div
+                                v-for="save in allSaves"
+                                :key="save.id"
+                                class="save-selector-item"
+                                @click="loadSelectedSave(save)"
+                            >
+                                <div class="save-selector-item-info">
+                                    <p class="save-selector-item-id">存档 ID: {{ save.id }}</p>
+                                    <p class="save-selector-item-time">创建：{{ save.create_time }}</p>
+                                    <p class="save-selector-item-time">更新：{{ save.update_time }}</p>
+                                </div>
+                                <button
+                                    class="retro-button"
+                                    type="button"
+                                    :disabled="loadApplying"
+                                >
+                                    加载
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </ClientOnly>
     </div>
 </template>
