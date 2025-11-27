@@ -1,5 +1,7 @@
 const rawApiBase = process.env.NES_API_BASE || "http://localhost:8080";
+console.log(rawApiBase);
 const normalizedApiBase = rawApiBase.replace(/\/+$/, "");
+console.log(normalizedApiBase);
 const proxyTarget = normalizedApiBase.endsWith("/api")
   ? `${normalizedApiBase}/**`
   : `${normalizedApiBase}/api/**`;
