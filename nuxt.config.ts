@@ -16,7 +16,7 @@ enableClerk = true
 export default defineNuxtConfig({
   ssr: true,
   devtools: { enabled: false },
-  modules: enableClerk ? ["@clerk/nuxt"] : [],
+  modules:  ["@clerk/nuxt"],
   app: {
     head: {
       title: "NES Retro Hub",
@@ -56,16 +56,6 @@ export default defineNuxtConfig({
     },
     clerkSecretKey,
   },
-  ...(enableClerk
-    ? {
-        clerk: {
-          publishableKey: clerkPublishableKey,
-          secretKey: clerkSecretKey,
-          signInUrl: "/sign-in",
-          signUpUrl: "/sign-up",
-        },
-      }
-    : {}),
   components: [{ path: "~/components", extensions: ["vue"] }],
   nitro: {
     routeRules: {
