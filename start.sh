@@ -28,7 +28,7 @@ export HOST="${HOST:-0.0.0.0}"
 export PORT="${PORT:-3000}"
 
 echo "[start.sh] 启动服务 (HOST=${HOST}, PORT=${PORT}) ..."
-node "${SERVER_ENTRY}" >> "${LOG_FILE}" 2>&1 &
+bun run start >> "${LOG_FILE}" 2>&1 &
 SERVER_PID=$!
 echo "${SERVER_PID}" > "${PID_FILE}"
 echo "[start.sh] 服务已启动，PID=${SERVER_PID}。日志：${LOG_FILE}"
