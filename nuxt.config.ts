@@ -1,13 +1,19 @@
-console.log(process.env);
-const rawApiBase = process.env.NES_API_BASE || "http://localhost:8080";
+const env =
+  (
+    (globalThis as { process?: { env?: Record<string, string | undefined> } })
+      .process?.env
+  ) || {};
+
+console.log(env);
+const rawApiBase = env.NES_API_BASE || "http://localhost:8080";
 console.log(rawApiBase);
 const normalizedApiBase = rawApiBase.replace(/\/+$/, "");
 console.log(normalizedApiBase);
 const proxyTarget = normalizedApiBase.endsWith("/api")
   ? `${normalizedApiBase}/**`
   : `${normalizedApiBase}/api/**`;
-const clerkPublishableKey = process.env.CLERK_PUBLISHABLE_KEY || "";
-const clerkSecretKey = process.env.CLERK_SECRET_KEY || "";
+const clerkPublishableKey = env.CLERK_PUBLISHABLE_KEY || "";
+const clerkSecretKey = env.CLERK_SECRET_KEY || "";
 const clerkInstanceType = clerkPublishableKey.startsWith("pk_live_")
   ? "production"
   : clerkPublishableKey
@@ -49,13 +55,14 @@ export default defineNuxtConfig({
     public: {
       apiBase: "/api",
       imageBase:
-        process.env.NES_IMAGE_BASE || "https://bin9.vae88.com/files/img/",
-      romBase: process.env.NES_ROM_BASE || "https://bin9.vae88.com/files/",
+        env.NES_IMAGE_BASE || "https://bin9.vae88.com/files/img/",
+      romBase: env.NES_ROM_BASE || "https://bin9.vae88.com/files/",
       emulatorBase:
-        process.env.NES_EMULATOR_BASE ||
+        env.NES_EMULATOR_BASE ||
         "https://cdn.jsdelivr.net/npm/@ttgame/emulatorjs@4.2.3/data",
       clerkPublishableKey,
       clerkInstanceType,
+      claritySiteId: env.MICROSOFT_CLARITY_ID || "",
     },
     clerkSecretKey,
   },

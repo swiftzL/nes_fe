@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-    "scripts": {
+  "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@clerk/nuxt": "^1.13.2",
+    "@microsoft/clarity": "^1.0.2",
     "jszip": "^3.10.1",
     "nuxt": "^4.2.1",
     "vue": "^3.5.25",
