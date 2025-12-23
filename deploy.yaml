@@ -1,0 +1,19 @@
+apps:
+  - name: nes_fe
+    script: .output/server/index.mjs
+    instances: max
+    exec_mode: cluster
+    env:
+      PORT: 3000
+      NODE_ENV: production
+      NES_API_BASE: 'http://localhost:8081'
+
+deploy:
+  production:
+    user: 'root'
+    host: '69.62.86.33'
+    ref: 'origin/main'
+    repo: 'https://github.com/swiftzL/nes_fe'
+    path: '/var/www/nes_fe'
+    pre-deploy-local: ''
+    post-deploy: 'bun install && bun run build && pm2 reload deploy.yaml'

@@ -66,3 +66,4 @@ CLERK_SECRET_KEY=sk_live_xxx
 - 自定义 `RetroPanel`、`GameCard` 组件方便复用
 
 欢迎根据实际 API 返回的数据进一步丰富页面，例如添加 ROM 在线预览或更多筛选条件。
+$env:GOOGLE_CLOUD_PROJECT="gen-lang-client-0438168713"
