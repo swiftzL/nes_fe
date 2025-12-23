@@ -15,5 +15,5 @@ deploy:
     ref: 'origin/main'
     repo: 'https://github.com/swiftzL/nes_fe'
     path: '/var/www/nes_fe'
-    pre-deploy: git fetch --all 
-    post-deploy: 'bun install && bun run build && pm2 reload deploy.yaml'
+    pre-deploy: 'source ~/.bashrc && git fetch --all'
+    post-deploy: 'export PATH=$HOME/.bun/bin:$PATH && bun install && bun run build && pm2 reload deploy.yaml'
