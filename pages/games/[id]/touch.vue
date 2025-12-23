@@ -176,7 +176,7 @@ const prepareRomFile = async () => {
     }
 };
 
-const emulatorBase = runtime.public?.emulatorBase || "https://cdn.jsdelivr.net/npm/@ttgame/emulatorjs@4.2.3/data";
+const emulatorBase = runtime.public?.emulatorBase;
 const loaderScriptSrc = `${emulatorBase.replace(/\/+$/, "")}/loader.js`;
 const emulatorScriptSrc = `${emulatorBase.replace(/\/+$/, "")}/src/emulator.js`;
 

@@ -59,7 +59,7 @@ export default defineNuxtConfig({
       romBase: env.NES_ROM_BASE || "https://bin9.vae88.com/files/",
       emulatorBase:
         env.NES_EMULATOR_BASE ||
-        "https://cdn.jsdelivr.net/npm/@ttgame/emulatorjs@4.2.3/data",
+        "https://cdn.jsdelivr.net/npm/@ttgame/emulatorjs@4.2.4/data",
       clerkPublishableKey,
       clerkInstanceType,
       claritySiteId: env.MICROSOFT_CLARITY_ID || "",

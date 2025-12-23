@@ -226,7 +226,6 @@ export default function GameEmulator({ gameId, romUrl, system }: GameEmulatorPro
         window.EJS_player = `#emulator-${gameId}`;
         window.EJS_gameUrl = blobUrl;
         window.EJS_core = getEmulatorSystem(system);
-        // window.EJS_pathtodata = 'https://cdn.jsdelivr.net/npm/@ttgame/emulatorjs@4.2.2/data/';
         window.EJS_pathtodata = config.EMULATOR_URL;
 
         window.EJS_startOnLoaded = true;
