@@ -1,6 +1,7 @@
 apps:
   - name: nes_fe
     script: .output/server/index.mjs
+    interpreter: 'bun'
     instances: max
     exec_mode: cluster
     env:
