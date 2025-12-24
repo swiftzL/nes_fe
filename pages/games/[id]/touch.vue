@@ -228,11 +228,9 @@ const attachEmulator = async () => {
             return;
         }
         try {
-            // 复用现有的 handleSaveState 逻辑，或者直接调用它
-            // 这里我们直接调用 handleSaveState，因为它已经包含了获取 state 和上传的逻辑
-            // 注意：handleSaveState 可能会依赖 UI 按钮状态，这里我们简单封装一下
             await handleSaveState();
-            return true; // 返回 true 表示成功（如果 EJS 支持返回值判断）
+            alert("云存档保存成功！");
+            return true;
         } catch (e) {
             console.error("EJS_cloudSave error", e);
             alert("云存档保存失败");
@@ -270,6 +268,7 @@ const attachEmulator = async () => {
         }
         // 调用现有的加载逻辑
         await loadSelectedSave(targetSave);
+        alert("云存档加载成功！");
     };
 
     const loadScriptOnce = (id: string, src: string) =>

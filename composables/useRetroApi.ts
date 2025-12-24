@@ -17,6 +17,7 @@ export const useRetroApi = () => {
   const authToken = config.apiToken
   const route = useRoute()
   const hasClerk = computed(() => Boolean(config.public?.clerkPublishableKey))
+  const { start, finish } = useLoadingIndicator()
 
   const waitForAuthLoaded = async (auth: ReturnType<typeof useAuth> | null) => {
     if (!auth?.isLoaded) return
@@ -70,6 +71,7 @@ export const useRetroApi = () => {
 
   const unwrap = async <T>(promise: Promise<ApiResponse<T>>): Promise<T> => {
     try {
+      start()
       const response = await promise
       if (response.code === 401) {
         // await redirectToSignIn() // 移除自动跳转，防止页面闪烁
@@ -88,6 +90,8 @@ export const useRetroApi = () => {
         throw createError({ statusCode: 401, statusMessage: '未登录' })
       }
       throw err
+    } finally {
+      finish()
     }
   }
 
