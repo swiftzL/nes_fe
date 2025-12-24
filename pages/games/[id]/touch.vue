@@ -30,6 +30,10 @@ type EmulatorWindow = Window &
         EJS_startOnLoaded: boolean;
         EJS_onGameStart: () => void;
         EJS_emulator: EmulatorInstance;
+        // 自定义云存档接口
+        EJS_cloudSave: () => Promise<boolean | void>;
+        EJS_getSelectSave: () => Promise<Array<{ id: string; desc: string }>>;
+        EJS_loadSave: (id: string) => Promise<void>;
     }>;
 
 const fullscreenRoot = ref<HTMLElement | null>(null);
@@ -214,6 +218,58 @@ const attachEmulator = async () => {
             console.warn("[touch] emulator started but gameManager not available");
             emulatorReady.value = true; // 仍然标记为就绪，但会在使用时重试
         }
+    };
+
+    // 注入自定义云存档钩子
+    // 1. EJS_cloudSave: 模拟器触发“保存到云端”时调用
+    (win as any).EJS_cloudSave = async () => {
+        if (!isAuthenticated.value) {
+            alert("请先登录再使用云存档功能。");
+            return;
+        }
+        try {
+            // 复用现有的 handleSaveState 逻辑，或者直接调用它
+            // 这里我们直接调用 handleSaveState，因为它已经包含了获取 state 和上传的逻辑
+            // 注意：handleSaveState 可能会依赖 UI 按钮状态，这里我们简单封装一下
+            await handleSaveState();
+            return true; // 返回 true 表示成功（如果 EJS 支持返回值判断）
+        } catch (e) {
+            console.error("EJS_cloudSave error", e);
+            alert("云存档保存失败");
+            return false;
+        }
+    };
+
+    // 2. EJS_getSelectSave: 模拟器打开“加载云存档”列表时调用
+    (win as any).EJS_getSelectSave = async () => {
+        if (!isAuthenticated.value) {
+            alert("请先登录再使用云存档功能。");
+            return [];
+        }
+        try {
+            await fetchRemoteSave(); // 确保 allSaves 是最新的
+            // 格式化为 emulator 需要的格式 {id, desc}
+            // id 必须是字符串，desc 是显示在列表里的文本
+            return allSaves.value.map(save => ({
+                id: String(save.id),
+                desc: `${save.create_time} (ID: ${save.id})`
+            }));
+        } catch (e) {
+            console.error("EJS_getSelectSave error", e);
+            return [];
+        }
+    };
+
+    // 3. EJS_loadSave: 用户在列表中选择了某个存档 id 后调用
+    (win as any).EJS_loadSave = async (id: string) => {
+        const saveId = Number(id);
+        const targetSave = allSaves.value.find(s => s.id === saveId);
+        if (!targetSave) {
+            alert("未找到该存档信息");
+            return;
+        }
+        // 调用现有的加载逻辑
+        await loadSelectedSave(targetSave);
     };
 
     const loadScriptOnce = (id: string, src: string) =>
@@ -473,26 +529,13 @@ const loadSelectedSave = async (save: GameSave) => {
 };
 
 const requestFullscreen = async () => {
-    if (!import.meta.client) return;
-    const target =
-        emulatorStage.value || fullscreenRoot.value || document.documentElement;
-    const el: any = target;
-    if (!el) return;
-    const request =
-        el.requestFullscreen ||
-        el.webkitRequestFullscreen ||
-        el.msRequestFullscreen ||
-        el.mozRequestFullScreen;
-    if (request) {
-        await request.call(el);
-    }
+    // @ts-ignore
+    window.EJS_emulator?.toggleFullscreen(true);
 };
 
 const exitFullscreen = async () => {
-    if (!import.meta.client) return;
-    if (document.fullscreenElement) {
-        await document.exitFullscreen();
-    }
+    // @ts-ignore
+    window.EJS_emulator?.toggleFullscreen(false);
 };
 
 const toggleFullscreen = async () => {

@@ -72,7 +72,7 @@ export const useRetroApi = () => {
     try {
       const response = await promise
       if (response.code === 401) {
-        await redirectToSignIn()
+        // await redirectToSignIn() // 移除自动跳转，防止页面闪烁
         throw createError({ statusCode: 401, statusMessage: '未登录' })
       }
       if (response.code !== 0) {
@@ -84,7 +84,8 @@ export const useRetroApi = () => {
       return response.data
     } catch (err: any) {
       if (err?.response?.status === 401) {
-        await redirectToSignIn()
+        // await redirectToSignIn() // 移除自动跳转
+        throw createError({ statusCode: 401, statusMessage: '未登录' })
       }
       throw err
     }

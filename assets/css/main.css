@@ -361,10 +361,41 @@ a {
   font-size: 0.75rem;
 }
 
+.filter-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-row label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  gap: 0.3rem;
+}
+
+.filter-row select {
+  background: #0c111d;
+  border: 2px solid var(--nes-border);
+  color: var(--nes-soft);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
 .detail-layout {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
+  margin-top: 2.5rem;
 }
 
 .detail-card {
@@ -408,7 +439,23 @@ a {
 .meta-table td {
   padding: 0.4rem 0;
   color: #c0c6dc;
+  word-break: break-all;
 }
+
+@media (max-width: 480px) {
+  .meta-table td {
+    display: block;
+    width: 100%;
+    padding: 0.2rem 0;
+  }
+  
+  .meta-table td:first-child {
+    font-size: 0.8rem;
+    color: var(--nes-green);
+    margin-top: 0.5rem;
+  }
+}
+
 
 .meta-table td:first-child {
   color: var(--nes-green);
@@ -675,24 +722,186 @@ a {
   color: #9ba4c4;
 }
 
+.mobile-only-block {
+  display: none;
+}
+
 @media (max-width: 768px) {
+  .mobile-only-block {
+    display: block;
+  }
+  
+  .desktop-only {
+    display: none;
+  }
+
+  .type-tabs {
+    display: none;
+  }
+
+  .retro-panel {
+    padding: 1.2rem;
+  }
+
+  .hero-panel__art {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-row select {
+    width: 100%;
+  }
+
   .retro-header {
-    flex-wrap: wrap;
+    padding: 1rem 4vw;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .retro-nav {
+    justify-content: center;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .retro-nav a {
+    white-space: nowrap;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .header-actions {
+    justify-content: center;
+  }
+
+  .retro-main {
+    padding: 1.5rem 4vw 3rem;
+  }
+
+  .hero-panel {
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .hero-panel__content h1 {
+    font-size: 1.8rem;
   }
 
   .search-bar button {
     width: 100%;
   }
 
+  .game-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+  }
+
+  .game-card {
+    padding: 0.8rem;
+  }
+
+  .game-card__title {
+    font-size: 0.75rem;
+  }
+
+  .game-card__meta {
+    font-size: 0.7rem;
+  }
+
   .ranking-item {
     grid-template-columns: 40px 1fr;
+    padding: 0.5rem 0.8rem;
+    gap: 0.5rem;
   }
 
-  .emulator-shell {
-    min-height: calc(100vh - 240px);
+  .ranking-item .badge {
+    grid-column: 2;
+    width: fit-content;
   }
 
-  .emulator-stage {
-    min-height: calc(100vh - 320px);
+  .detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .pagination button {
+    width: 100%;
+  }
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 480px) {
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .action-buttons .retro-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero-panel__content h1 {
+    font-size: 1.5rem;
+  }
+
+  .game-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem; /* 进一步缩小间距 */
+  }
+
+  .game-card {
+    padding: 0.5rem; /* 显著减少内边距 */
+    border-width: 1px; /* 减细边框 */
+    border-radius: 10px;
+  }
+
+  .game-card__art {
+    border-width: 1.5px; /* 减细图片边框 */
+    border-radius: 6px;
+  }
+
+  .game-card__title {
+    font-size: 0.65rem; /* 更小的字号 */
+    margin-top: 0.2rem;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* 允许最多显示两行，而不是一行省略 */
+    -webkit-box-orient: vertical;
+    white-space: normal;
+    overflow: hidden;
+  }
+
+  .game-card__meta {
+    font-size: 0.55rem; /* 极小字号 */
+    gap: 0.2rem;
+    color: #888;
+  }
+  
+  .badge {
+    padding: 0.1rem 0.3rem;
+    font-size: 0.55rem;
+  }
+
+  .game-card--small {
+    max-width: none;
   }
 }

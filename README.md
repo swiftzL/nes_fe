@@ -67,3 +67,10 @@ CLERK_SECRET_KEY=sk_live_xxx
 
 欢迎根据实际 API 返回的数据进一步丰富页面，例如添加 ROM 在线预览或更多筛选条件。
 $env:GOOGLE_CLOUD_PROJECT="gen-lang-client-0438168713"
+
+location /_nuxt/ {
+             alias /var/www/nes_fe/current/.output/public/_nuxt/;
+             expires 1y;
+            access_log off;
+            add_header Cache-Control "public, max-age=31536000, immutable";
+        }

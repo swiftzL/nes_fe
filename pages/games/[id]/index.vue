@@ -132,7 +132,7 @@ const deleteSave = async () => {
             <span>· {{ game.language }}</span>
             <span v-if="game.region">· {{ game.region }}</span>
           </p>
-          <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:1.5rem;">
+          <div class="action-buttons">
             <NuxtLink class="retro-button" :to="`/games/${game.game_id}/touch`">
               立即启动
             </NuxtLink>

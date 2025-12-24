@@ -141,14 +141,20 @@ const changePage = (direction: 'prev' | 'next') => {
       <div v-else class="notice-box">暂无匹配的游戏，请尝试其他关键字。</div>
     </RetroPanel>
 
-    <RetroPanel>
+    <RetroPanel class="desktop-only">
       <template #title>
         {{ selectedType }} 游戏库
       </template>
-      <div class="filter-row" style="display:flex; gap:1rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap;">
-        <label style="display:flex; flex-direction:column; font-size:0.8rem; gap:0.3rem;">
+      <div class="filter-row">
+        <label class="mobile-only-block">
+          选择平台
+          <select v-model="selectedType">
+             <option v-for="t in typeList" :key="t" :value="t">{{ t }}</option>
+          </select>
+        </label>
+        <label>
           语言筛选
-          <select v-model="languageFilter" style="background:#0c111d; border:2px solid var(--nes-border); color:var(--nes-soft); padding:0.4rem 0.8rem; border-radius:8px;">
+          <select v-model="languageFilter">
             <option value="">全部</option>
             <option value="EN">EN</option>
             <option value="JP">JP</option>
@@ -162,14 +168,14 @@ const changePage = (direction: 'prev' | 'next') => {
         <GameCard v-for="game in gamesPage.games" :key="game.game_id" :game="game" />
       </div>
       <div v-else class="notice-box">该类型暂无数据。</div>
-      <div class="pagination" style="display:flex; justify-content:space-between; margin-top:1.5rem;">
+      <div class="pagination">
         <button class="retro-button" :disabled="page === 1" @click="changePage('prev')">上一页</button>
         <span class="badge">第 {{ page }} / {{ totalPages }} 页</span>
         <button class="retro-button" :disabled="page === totalPages" @click="changePage('next')">下一页</button>
       </div>
     </RetroPanel>
 
-    <div class="detail-layout" style="margin-top:2.5rem;">
+    <div class="detail-layout">
       <RetroPanel title="推荐精选">
         <div class="game-grid">
           <GameCard v-for="game in recommend" :key="game.game_id" :game="game" />
