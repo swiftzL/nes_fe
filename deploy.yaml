@@ -20,4 +20,4 @@ deploy:
     post-deploy: 'export PATH=$HOME/n/bin:$PATH && npm install && npm run build && pm2 reload deploy.yaml'
     env:
       NES_API_BASE: 'http://127.0.0.1:8081'
-      NES_EMULATOR_BASE: 'https://cdn.jsdelivr.net/npm/@ttgame/emulatorjs@4.2.5/data'
+      NES_EMULATOR_BASE: 'https://cdn.jsdelivr.net/npm/@ttgame/emulatorjs@4.2.6/data'
