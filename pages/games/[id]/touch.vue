@@ -53,7 +53,17 @@ const loadApplying = ref(false);
 const saveMessage = ref("");
 const loadMessage = ref("");
 const saveFetchMessage = ref("");
+const toastMessage = ref(""); // 全局 Toast 消息
+let toastTimer: any = null;
 let saveFetchToken = 0;
+
+const showToast = (msg: string) => {
+    if (toastTimer) clearTimeout(toastTimer);
+    toastMessage.value = msg;
+    toastTimer = setTimeout(() => {
+        toastMessage.value = "";
+    }, 3000);
+};
 
 const gameId = computed(() => {
     const id = Number(route.params.id);
@@ -224,16 +234,16 @@ const attachEmulator = async () => {
     // 1. EJS_cloudSave: 模拟器触发“保存到云端”时调用
     (win as any).EJS_cloudSave = async () => {
         if (!isAuthenticated.value) {
-            alert("请先登录再使用云存档功能。");
+            showToast("请先登录再使用云存档功能。");
             return;
         }
         try {
             await handleSaveState();
-            alert("云存档保存成功！");
+            showToast("云存档保存成功！");
             return true;
         } catch (e) {
             console.error("EJS_cloudSave error", e);
-            alert("云存档保存失败");
+            showToast("云存档保存失败");
             return false;
         }
     };
@@ -241,7 +251,7 @@ const attachEmulator = async () => {
     // 2. EJS_getSelectSave: 模拟器打开“加载云存档”列表时调用
     (win as any).EJS_getSelectSave = async () => {
         if (!isAuthenticated.value) {
-            alert("请先登录再使用云存档功能。");
+            showToast("请先登录再使用云存档功能。");
             return [];
         }
         try {
@@ -263,12 +273,12 @@ const attachEmulator = async () => {
         const saveId = Number(id);
         const targetSave = allSaves.value.find(s => s.id === saveId);
         if (!targetSave) {
-            alert("未找到该存档信息");
+            showToast("未找到该存档信息");
             return;
         }
         // 调用现有的加载逻辑
         await loadSelectedSave(targetSave);
-        alert("云存档加载成功！");
+        showToast("云存档加载成功！");
     };
 
     const loadScriptOnce = (id: string, src: string) =>
@@ -527,6 +537,27 @@ const loadSelectedSave = async (save: GameSave) => {
     }
 };
 
+const handleDeleteSave = async (saveId: number) => {
+    if (!import.meta.client) return;
+    if (!confirm("确定要删除这条存档吗？此操作无法撤销。")) {
+        return;
+    }
+    const currentToken = ++saveFetchToken;
+    saveSyncing.value = true;
+    try {
+        await retroApi.deleteSave(saveId);
+        showToast("存档已删除");
+        // 重新获取列表
+        await fetchRemoteSave();
+    } catch (err: any) {
+        console.error("[touch] delete save failed", err);
+        showToast(err?.statusMessage || "删除失败");
+        if (currentToken === saveFetchToken) {
+            saveSyncing.value = false;
+        }
+    }
+};
+
 const requestFullscreen = async () => {
     // @ts-ignore
     window.EJS_emulator?.toggleFullscreen(true);
@@ -660,6 +691,13 @@ onBeforeUnmount(() => {
             <span class="badge" v-if="loadMessage">{{ loadMessage }}</span>
         </div>
 
+        <!-- 全局 Toast 提示 -->
+        <Transition name="fade">
+            <div v-if="toastMessage" class="toast-popup">
+                {{ toastMessage }}
+            </div>
+        </Transition>
+
         <div class="touch-play__body">
             <section class="touch-play__emulator">
                 <div v-if="pending" class="notice-box">加载游戏信息...</div>
@@ -672,7 +710,7 @@ onBeforeUnmount(() => {
                 <div v-else class="emulator-shell">
                     <header class="emulator-shell__header">
                         <h3>{{ game.title }} · 触屏启动</h3>
-                        <p>ROM：{{ game.binary_file }}</p>
+                        <p style="word-break: break-all; max-width: 100%;">ROM：{{ game.binary_file }}</p>
                     </header>
                     <p
                         v-if="romLoading"
@@ -737,13 +775,25 @@ onBeforeUnmount(() => {
                                     <p class="save-selector-item-time">创建：{{ save.create_time }}</p>
                                     <p class="save-selector-item-time">更新：{{ save.update_time }}</p>
                                 </div>
-                                <button
-                                    class="retro-button"
-                                    type="button"
-                                    :disabled="loadApplying"
-                                >
-                                    加载
-                                </button>
+                                <div class="save-actions" style="display:flex; gap:0.5rem;">
+                                    <button
+                                        class="retro-button"
+                                        type="button"
+                                        :disabled="loadApplying || saveSyncing"
+                                        @click.stop="loadSelectedSave(save)"
+                                    >
+                                        加载
+                                    </button>
+                                    <button
+                                        class="retro-button retro-button--danger"
+                                        type="button"
+                                        style="background:var(--nes-accent); border-color:var(--nes-accent);"
+                                        :disabled="loadApplying || saveSyncing"
+                                        @click.stop="handleDeleteSave(save.id)"
+                                    >
+                                        删除
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -752,3 +802,82 @@ onBeforeUnmount(() => {
         </ClientOnly>
     </div>
 </template>
+
+<style scoped>
+.toast-popup {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid var(--nes-accent, #ff4655);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    z-index: 9999;
+    font-family: var(--font-display, monospace);
+    font-size: 0.8rem;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.save-selector-modal {
+  width: 90%;
+  max-width: 600px;
+}
+
+@media (max-width: 480px) {
+  .save-selector-modal {
+    padding: 0;
+    width: 95%;
+  }
+  
+  .save-selector-header {
+    padding: 1rem;
+  }
+  
+  .save-selector-content {
+    padding: 1rem;
+  }
+
+  .save-selector-item {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem;
+  }
+
+  .save-selector-item-info {
+    min-width: 0;
+  }
+  
+  .save-selector-item button {
+    width: auto;
+    margin-top: 0;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+    white-space: nowrap;
+  }
+
+  .save-selector-item-id {
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .save-selector-item-time {
+    font-size: 0.65rem;
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+</style>
