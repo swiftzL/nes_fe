@@ -11,7 +11,7 @@ import type {
   GameHistoryEntry
 } from '~/types/api'
 
-export const useRetroApi = () => {
+export const useRetroApi = (customToken?: string) => {
   const config = useRuntimeConfig()
   const baseURL = config.public.apiBase || '/api'
   const authToken = config.apiToken
@@ -97,6 +97,13 @@ export const useRetroApi = () => {
 
   const withAuth = async () => {
     const headers: Record<string, string> = {}
+    
+    // 优先使用传入的自定义 token (如 wx_touch 场景)
+    if (customToken) {
+      headers.Authorization = customToken.startsWith('Bearer ') ? customToken : `Bearer ${customToken}`
+      return headers
+    }
+
     // 服务端使用环境变量 token
     if (import.meta.server && authToken) {
       headers.Authorization = authToken
